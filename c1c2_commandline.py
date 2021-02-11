@@ -67,7 +67,7 @@ def main(target, c1, c2, N, H, name, do_sanity_check, BB, W):
     if compute_stl:
         if len(name) == 0:
             name = getStlName(radius, c1, c2)
-        linetostl.lineToSTL(linetostl.polarToCart(theta, radii), name, H)
+        linetostl.lineToSTL(curves_overlap.offset_curve(np.array(linetostl.polarToCart(theta, radii)), -W), name, H)
 
 if __name__ == '__main__':
     #default values

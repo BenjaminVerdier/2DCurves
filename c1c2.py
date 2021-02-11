@@ -120,7 +120,8 @@ def getStlName():
 stl_button_ax = fig.add_axes([0.8, 0., 0.1, 0.04])
 stl_button = Button(stl_button_ax, 'STL', color=axis_color, hovercolor='0.975')
 def stl_button_on_clicked(mouse_event):
-    linetostl.lineToSTL(linetostl.polarToCart(theta, radii), getStlName(), float(height_text_box.text))
+    linetostl.lineToSTL(curves_overlap.offset_curve(np.array(linetostl.polarToCart(theta, radii)), -float(width_text_box.text)/2), getStlName(), float(height_text_box.text))
+    #linetostl.lineToSTL(linetostl.polarToCart(theta, radii), 'original_' + getStlName(), float(height_text_box.text))
 stl_button.on_clicked(stl_button_on_clicked)
 
 #fixing arguments
