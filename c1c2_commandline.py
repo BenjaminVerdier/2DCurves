@@ -8,6 +8,8 @@ import integral
 import curves_overlap
 import argparse
 
+show_offset_curves = False
+
 theta = np.arange(0, (2 * pi), 0.01)
 
 def check_for_neg_rad(radii):
@@ -23,7 +25,7 @@ def checkBB(theta, radii, BB):
 
 def check_overlap(theta, radii, W):
     pts = np.array(linetostl.polarToCart(theta, radii))
-    return curves_overlap.check_for_intersection(pts, W)
+    return curves_overlap.check_for_intersection(pts, W, show_offset_curves)
 
 def sanity_check(theta, radii, BB, W):
     problem = False
@@ -90,6 +92,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--skip_check', action="store_true", help='Wether the program should skip the curve validity check.')
     parser.add_argument('--BB', type=float, help='Bounding box size, default = 5')
     parser.add_argument('--W', type=float, help='Width for sanity check, default = 0.1')
+    parser.add_argument('--show_offset', action="store_true", help='Wether the program should skip the curve validity check.')
     args=parser.parse_args()
     if args.target:
         target = args.target
@@ -109,4 +112,6 @@ if __name__ == '__main__':
         BB = args.BB
     if args.W:
         W = args.W
+    if args.show_offset:
+        show_offset_curves = True
     main(target, c1, c2, N, H, name, do_sanity_check, BB, W)

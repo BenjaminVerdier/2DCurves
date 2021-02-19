@@ -26,13 +26,14 @@ def check_for_self_intersection(pts):
     return edges_intersect(curve)
 
 
-def check_for_intersection(pts, width):
+def check_for_intersection(pts, width, display=True):
     curve_pos = offset_curve(pts, width/2)
     curve_neg = offset_curve(pts, -width/2)
-    plt.figure(2)
-    plt.plot(curve_pos[:,0], curve_pos[:,1], color='r')
-    plt.plot(curve_neg[:,0], curve_neg[:,1], color='b')
-    plt.plot(pts[:,0], pts[:,1], color='g')
-    plt.show()
+    if display:
+        plt.figure(2)
+        plt.plot(curve_pos[:,0], curve_pos[:,1], color='r')
+        plt.plot(curve_neg[:,0], curve_neg[:,1], color='b')
+        plt.plot(pts[:,0], pts[:,1], color='g')
+        plt.show()
     x, y = intersection(curve_pos[:,0], curve_pos[:,1],curve_neg[:,0], curve_neg[:,1])
     return len(x) > 0 or check_for_self_intersection(curve_pos) or check_for_self_intersection(curve_neg)
