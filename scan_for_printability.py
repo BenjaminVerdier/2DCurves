@@ -51,10 +51,14 @@ def scan_for_fixed_radius(radius, min_c1, max_c1, min_c2, max_c2, resolution, W)
             else:
                 invalid_c1s.append(c1)
                 invalid_c2s.append(c2)
-    plt.scatter(valid_c1s,valid_c2s, c='blue')
-    plt.scatter(invalid_c1s,invalid_c2s, c='red')
+    valid = plt.scatter(valid_c1s,valid_c2s, c='blue', label='Printable')
+    invalid = plt.scatter(invalid_c1s,invalid_c2s, c='red', label='Not Printable')
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
+    plt.xlabel("c1")
+    plt.ylabel("c2")
     plt.savefig('R_' + '{:.2f}'.format(radius) + '_printability.png')
+    plt.clf()
 
 for radius in np.arange(1,6.1,.1):
     print("radius=",radius)
-    scan_for_fixed_radius(radius, -.5, .5, -.5, .5, .5, .2)
+    scan_for_fixed_radius(radius, -.5, .5, -.5, .5, .01, .2)
