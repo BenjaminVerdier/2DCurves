@@ -3,6 +3,23 @@ import numpy as np
 from math import sqrt
 from functools import partial
 
+from mpmath import *
+
+def fermat_length(a,x):
+    F = ellipf(acos((0.5-x) / (0.5+x)), 0.5)
+    return a*(F + sqrt(2*x*(4*x**2+1))) / sqrt(18)
+
+
+def arch_length(a,x):
+    return a*(x*sqrt(x*x + 1) + np.arcsinh(x)) / 2
+
+def length_from_points(pts):
+    total_length = 0
+    for i in range(pts.shape[0]):
+        total_length += np.linalg.norm(pts[i,:] - pts[i-1,:])
+    return total_length
+
+
 def func(R, c1, c2, theta):
     return np.sqrt( (R * (1 + c1 * cos(4 * theta) + c2 * cos(8 * theta)))**2 + (4 * R * (c1 * sin(4 * theta) + 2 * c2 * sin(8 * theta)))**2 )
 
