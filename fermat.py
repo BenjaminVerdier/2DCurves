@@ -44,7 +44,7 @@ type = 'fermat'
 a = 5
 max_theta = 4 * pi
 
-def make_spiral(a, max_theta):
+def make_spiral(a, max_theta, type):
     theta = np.arange(0, max_theta, 0.01)
     theta_trunc = np.flip(np.arange(0.01, max_theta + pi, 0.01))
     double_theta = np.append(theta_trunc, theta)
@@ -62,7 +62,7 @@ def make_spiral(a, max_theta):
         return double_theta, double_radii
 
 
-theta, radii = make_spiral(a, max_theta)
+theta, radii = make_spiral(a, max_theta, type)
 
 axis_color = 'lightgoldenrodyellow'
 
@@ -97,17 +97,29 @@ def compute_fermat_length_from_scratch(a, max_theta):
     length_between_ends = a * (sqrt(max_theta + pi) - sqrt(max_theta))
     return float(length1 + length2) + length_between_ends
 
+def is_inside_bb_fermat(a, max_theta, BB):
+    return a * (sqrt(max_theta + pi) + sqrt(max_theta)) - BB
+
 def compute_arch_length_from_scratch(a, max_theta):
     length1 = integral.arch_length(a, max_theta)
     length2 = integral.arch_length(a, max_theta + pi)
     length_between_ends = a * pi
     return float(length1 + length2) + length_between_ends
 
+def is_inside_bb_arch(a, max_theta, BB):
+    return a * (2 * max_theta + pi) - BB
+
 def compute_mixed_length_from_scratch(a, max_theta):
-    theta, radii = make_spiral(a, max_theta)
+    theta, radii = make_spiral(a, max_theta, 'mixed')
     pts = np.array(linetostl.polarToCart(theta, radii))
     length = integral.length_from_points(pts)
     return length
+
+def is_inside_bb_mixed(a, max_theta, BB):
+    pi_squared = pi*pi
+    r1 = (max(pi_squared-max_theta, 0)*pi*sqrt(max_theta) + min(max_theta, pi_squared)*max_theta)/pi_squared
+    r2 = (max(pi_squared-max_theta+pi, 0)*pi*sqrt(max_theta+pi) + min(max_theta+pi, pi_squared)*(max_theta+pi))/pi_squared
+    return a * (r1 + r2) - BB
 
 def compute_and_format_length(a, max_theta):
     if type == "fermat":
@@ -128,7 +140,7 @@ height_text_box = TextBox(height_ax, 'Height', initial = '19')
 
 #bounding box display
 bb_ax = fig.add_axes([0.1, 0.6, 0.15, 0.05])
-bb_text_box = TextBox(bb_ax, 'BB', initial = '19')
+bb_text_box = TextBox(bb_ax, 'BB', initial = '38')
 
 #width display
 width_ax = fig.add_axes([0.1, 0.7, 0.15, 0.05])
@@ -167,8 +179,8 @@ max_theta_slider.on_changed(max_theta_slider_on_changed)
 a_slider.on_changed(a_slider_on_changed)
 
 def update_graph():
-    global pts, a, max_theta
-    theta, radii = make_spiral(a, max_theta)
+    global pts, a, max_theta, type
+    theta, radii = make_spiral(a, max_theta, type)
     pts = np.array(linetostl.polarToCart(theta, radii))
     line.line.set_xdata(pts[:,0])
     line.line.set_ydata(pts[:,1])
@@ -220,13 +232,23 @@ def optimizable_function(fixed, params):
         max_theta = params[param_index]
         param_index = param_index + 1
     length = 0
+    penalty = 0
     if 'fermat' in fixed:
         length = compute_fermat_length_from_scratch(a, max_theta)
+        bb_diff = is_inside_bb_fermat(a, max_theta, fixed['BB'])
+        if bb_diff > 0:
+            penalty = 10*bb_diff
     if 'arch' in fixed:
         length = compute_arch_length_from_scratch(a, max_theta)
+        bb_diff = is_inside_bb_arch(a, max_theta, fixed['BB'])
+        if bb_diff > 0:
+            penalty = 10*bb_diff
     if 'mixed' in fixed:
         length = compute_mixed_length_from_scratch(a, max_theta)
-    return abs(fixed['target_length'] - length)
+        bb_diff = is_inside_bb_mixed(a, max_theta, fixed['BB'])
+        if bb_diff > 0:
+            penalty = 10*bb_diff
+    return abs(fixed['target_length'] - length) + penalty
 
 
 target_ax = fig.add_axes([0.1, 0.4, 0.15, 0.05])
@@ -235,8 +257,7 @@ opt_ax = fig.add_axes([0.1, 0.3, 0.15, 0.05])
 opt_button = Button(opt_ax, 'Optimize', color=axis_color)
 def opt_button_on_clicked(mouse_event):
     x0 = []
-    partial_params = {'target_length':float(target_text_box.text), type:True}
-
+    partial_params = {'target_length':float(target_text_box.text), type:True, "BB":float(bb_text_box.text)}
     fixed_params = checkbuttons_fix.get_status()
     if fixed_params[0]:
         partial_params['a'] = a_slider.val
