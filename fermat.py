@@ -1,6 +1,7 @@
 from numpy import pi, sin, cos
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from matplotlib.widgets import Slider, Button, CheckButtons, TextBox
 from math import sqrt
 import linetostl
@@ -9,38 +10,27 @@ from scipy.optimize import minimize
 import integral
 import curves_overlap
 
-class data_linewidth_plot():
-    def __init__(self, x, y, **kwargs):
-        self.ax = kwargs.pop("ax", plt.gca())
-        self.fig = self.ax.get_figure()
-        self.lw_data = kwargs.pop("linewidth", 1)
-        self.lw = 1
-        self.fig.canvas.draw()
+class LineDataUnits(Line2D):
+    def __init__(self, *args, **kwargs):
+        _lw_data = kwargs.pop("linewidth", 1)
+        super().__init__(*args, **kwargs)
+        self._lw_data = _lw_data
 
-        self.ppd = 72./self.fig.dpi
-        self.trans = self.ax.transData.transform
-        self.linehandle, = self.ax.plot([],[],**kwargs)
-        if "label" in kwargs: kwargs.pop("label")
-        self.line, = self.ax.plot(x, y, **kwargs)
-        self.line.set_color(self.linehandle.get_color())
-        self._resize()
-        self.cid = self.fig.canvas.mpl_connect('draw_event', self._resize)
+    def _get_lw(self):
+        if self.axes is not None:
+            ppd = 72./self.axes.figure.dpi
+            trans = self.axes.transData.transform
+            return ((trans((1, self._lw_data))-trans((0, 0)))*ppd)[1]
+        else:
+            return 1
 
-    def _resize(self, event=None):
-        lw =  ((self.trans((1, self.lw_data))-self.trans((0, 0)))*self.ppd)[1]
-        if lw != self.lw:
-            self.line.set_linewidth(lw)
-            self.lw = lw
-            self._redraw_later()
+    def _set_lw(self, lw):
+        self._lw_data = lw
 
-    def _redraw_later(self):
-        self.timer = self.fig.canvas.new_timer(interval=10)
-        self.timer.single_shot = True
-        self.timer.add_callback(lambda : self.fig.canvas.draw_idle())
-        self.timer.start()
+    _linewidth = property(_get_lw, _set_lw)
 
+#globals
 type = 'fermat'
-
 a = 5
 max_theta = 4 * pi
 
@@ -76,7 +66,9 @@ fig.subplots_adjust(left=0.25, bottom=0.25)
 # The 'line' variable is used for modifying the line later
 pts = np.array(linetostl.polarToCart(theta, radii))
 
-line =  data_linewidth_plot(pts[:,0], pts[:,1], ax=ax, linewidth=.6, color='red')
+line = LineDataUnits(pts[:,0], pts[:,1], linewidth=.6, color='red')
+ax.add_line(line)
+
 ax.set_xlim([-19, 19])
 ax.set_ylim([-19, 19])
 ax.set_aspect('equal')
@@ -146,6 +138,11 @@ bb_text_box = TextBox(bb_ax, 'BB', initial = '38')
 width_ax = fig.add_axes([0.1, 0.7, 0.15, 0.05])
 width_text_box = TextBox(width_ax, 'Width', initial = '.6')
 
+def on_width_submit(text):
+    line.set_linewidth(float(text))
+    update_graph()
+
+width_text_box.on_submit(on_width_submit)
 
 def check_for_neg_rad():
     if np.amin(radii) < 0.01:
@@ -182,8 +179,9 @@ def update_graph():
     global pts, a, max_theta, type
     theta, radii = make_spiral(a, max_theta, type)
     pts = np.array(linetostl.polarToCart(theta, radii))
-    line.line.set_xdata(pts[:,0])
-    line.line.set_ydata(pts[:,1])
+    line.set_xdata(pts[:,0])
+    line.set_ydata(pts[:,1])
+    line.set_linewidth(float(width_text_box.text))
     length_text_box.set_val(compute_and_format_length(a_slider.val, max_theta_slider.val))
     fig.canvas.draw_idle()
 
