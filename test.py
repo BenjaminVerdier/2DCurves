@@ -1,61 +1,46 @@
-from numpy import pi, sin, cos
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button, RadioButtons
-import math
+from skimage.measure import approximate_polygon, find_contours
 
-def circle_x_sine(radius, amp, freq):
-    return radius + amp * sin(rads * np.floor(freq))
+import cv2
 
-rads = np.arange(0, (2 * np.pi), 0.01)
+img = cv2.imread('loadtest.png', 0)
+contours = find_contours(img, 0)
 
-axis_color = 'lightgoldenrodyellow'
+result_contour = np.zeros(img.shape + (3, ), np.uint8)
+result_polygon1 = np.zeros(img.shape + (3, ), np.uint8)
+result_polygon2 = np.zeros(img.shape + (3, ), np.uint8)
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='polar')
+for contour in contours:
+    print('Contour shape:', contour.shape)
 
-# Adjust the subplots region to leave some space for the sliders and buttons
-fig.subplots_adjust(left=0.25, bottom=0.25)
+    # reduce the number of lines by approximating polygons
+    polygon1 = approximate_polygon(contour, tolerance=2.5)
+    print('Polygon 1 shape:', polygon1.shape)
 
-amp_0 = 0
-freq_0 = 1
-rad_0 = 1
+    # increase tolerance to further reduce number of lines
+    polygon2 = approximate_polygon(contour, tolerance=15)
+    print('Polygon 2 shape:', polygon2.shape)
 
-# Draw the initial plot
-# The 'line' variable is used for modifying the line later
-[line] = ax.plot(rads, circle_x_sine(rad_0, amp_0, freq_0), linewidth=2, color='red')
-ax.set_ylim([0, 5])
-# Add two sliders for tweaking the parameters
+    contour = contour.astype(np.int).tolist()
+    polygon1 = polygon1.astype(np.int).tolist()
+    polygon2 = polygon2.astype(np.int).tolist()
 
-# Define an axes area and draw a slider in it
-amp_slider_ax  = fig.add_axes([0.25, 0.15, 0.65, 0.03], facecolor=axis_color)
-amp_slider = Slider(amp_slider_ax, 'Amp', -1, 1.0, valinit=amp_0)
+    # draw contour lines
+    for idx, coords in enumerate(contour[:-1]):
+        y1, x1, y2, x2 = coords + contour[idx + 1]
+        result_contour = cv2.line(result_contour, (x1, y1), (x2, y2),
+                                  (0, 255, 0), 1)
+    # draw polygon 1 lines
+    for idx, coords in enumerate(polygon1[:-1]):
+        y1, x1, y2, x2 = coords + polygon1[idx + 1]
+        result_polygon1 = cv2.line(result_polygon1, (x1, y1), (x2, y2),
+                                   (0, 255, 0), 1)
+    # draw polygon 2 lines
+    for idx, coords in enumerate(polygon2[:-1]):
+        y1, x1, y2, x2 = coords + polygon2[idx + 1]
+        result_polygon2 = cv2.line(result_polygon2, (x1, y1), (x2, y2),
+                                   (0, 255, 0), 1)
 
-# Draw another slider
-freq_slider_ax = fig.add_axes([0.25, 0.1, 0.65, 0.03], facecolor=axis_color)
-freq_slider = Slider(freq_slider_ax, 'Freq', 0.1, 30.0, valinit=freq_0, valfmt='%0.0f')
-
-# Define an action for modifying the line when any slider's value changes
-def sliders_on_changed(val):
-    line.set_ydata(circle_x_sine(rad_0, amp_slider.val, freq_slider.val))
-    fig.canvas.draw_idle()
-amp_slider.on_changed(sliders_on_changed)
-freq_slider.on_changed(sliders_on_changed)
-
-# Add a button for resetting the parameters
-reset_button_ax = fig.add_axes([0.8, 0.025, 0.1, 0.04])
-reset_button = Button(reset_button_ax, 'Reset', color=axis_color, hovercolor='0.975')
-def reset_button_on_clicked(mouse_event):
-    freq_slider.reset()
-    amp_slider.reset()
-reset_button.on_clicked(reset_button_on_clicked)
-
-# Add a set of radio buttons for changing color
-color_radios_ax = fig.add_axes([0.025, 0.5, 0.15, 0.15], facecolor=axis_color)
-color_radios = RadioButtons(color_radios_ax, ('red', 'blue', 'green'), active=0)
-def color_radios_on_clicked(label):
-    line.set_color(label)
-    fig.canvas.draw_idle()
-color_radios.on_clicked(color_radios_on_clicked)
-
-plt.show()
+cv2.imwrite('contour_lines.png', result_contour)
+cv2.imwrite('polygon1_lines.png', result_polygon1)
+cv2.imwrite('polygon2_lines.png', result_polygon2)

@@ -4,39 +4,26 @@ import mapbox_earcut as earcut
 from stl import mesh
 from linetostl import polarToCart
 import argparse
-import integral
-from functools import partial
-from scipy.optimize import minimize
 
 theta = np.arange(0, (2 * pi), 0.01)
 
 def radius_comp(radius = 1, c1 = 0, c2 = 0):
     return radius * (1 + c1 * cos(4 * theta) + c2 * cos(8 * theta))
 
-def optimizable_function(target, c1, c2, param):
-    return abs(target - integral.approximate_integral_length(param[0], c1, c2))
-
-def interpolate_stl(target, c1_1, c2_1, c1_2, c2_2, twist, z, steps, name):
-    c1s = np.linspace(c1_1, c1_2, steps)
-    c2s = np.linspace(c2_1, c2_2, steps)
+def twist_stl(R, c1, c2, T, z, steps, name):
     twists = np.linspace(0, T, steps)
 
     pts_3d = [[]]*steps
     height_step = z / (steps-1)
-    tuples = [()]*steps
 
     for i in range(steps):
-        func_to_opt = partial(optimizable_function, target, c1s[i], c2s[i])
-        x0=[38]
-        res = minimize(func_to_opt, np.array(x0), method='nelder-mead', options={'xatol': 1e-8, 'disp': False})
-        tuples[i] = (res.x[0], c1s[i], c2s[i])
-        temp_polar = radius_comp(*tuples[i])
+        temp_polar = radius_comp(R, c1, c2)
         temp_cart = polarToCart(theta + twists[i], temp_polar)
         pts_3d[i] =  [ [ax,ay,i*height_step] for (ax,ay) in temp_cart]
 
 
-    pts_base = polarToCart(theta, radius_comp(*tuples[0]))
-    pts_top = polarToCart(theta + twists[steps-1], radius_comp(*tuples[steps-1]))
+    pts_base = polarToCart(theta, radius_comp(R, c1, c2))
+    pts_top = polarToCart(theta + twists[steps-1], radius_comp(R, c1, c2))
 
     triangles_indices_base = earcut.triangulate_float32(np.array(pts_base).reshape(-1,2), np.array([len(pts_base)])).reshape(-1,3)
     triangles_indices_top = earcut.triangulate_float32(np.array(pts_top).reshape(-1,2), np.array([len(pts_top)])).reshape(-1,3)
@@ -70,38 +57,30 @@ def interpolate_stl(target, c1_1, c2_1, c1_2, c2_2, twist, z, steps, name):
 
 if __name__ == '__main__':
     #default values
-    c1_1 = 0
-    c2_1 = 0
-    c1_2 = 0
-    c2_2 = 0
+    R = 1
+    c1 = 0
+    c2 = 0
     T = 0
-    target = 240.667
     N = 100
     H = 1
     name = ''
     parser=argparse.ArgumentParser()
-    parser.add_argument('--c1_1', type=float, help='Value of c1 of the base, default=0')
-    parser.add_argument('--c2_1', type=float, help='Value of c2 of the base, default=0')
-    parser.add_argument('--c1_2', type=float, help='Value of c1 of the base, default=0')
-    parser.add_argument('--c2_2', type=float, help='Value of c2 of the base, default=0')
+    parser.add_argument('--R', type=float, help='Radius of the base, default=1')
+    parser.add_argument('--c1', type=float, help='Value of c1, default=0')
+    parser.add_argument('--c2', type=float, help='Value of c2, default=0')
     parser.add_argument('--T', type=float, help='Total twist, default=0')
-    parser.add_argument('--target', type=float, help='Length target, default=240.667')
     parser.add_argument('--N', type=float, help='Number of interpolation steps, default=100')
     parser.add_argument('--H', type=float, help='Height of the stl, default=1')
-    parser.add_argument('--name', help='Name of the stl file, default="optimized__c1_yyy_YYY_c2_zzz_ZZZ_T_ttt.stl"')
+    parser.add_argument('--name', help='Name of the stl file, default="r_xxx_c1_yyy_c2_zzz_T_ttt.stl"')
     args=parser.parse_args()
-    if args.c1_1:
-        c1_1 = args.c1_1
-    if args.c2_1:
-        c2_1 = args.c2_1
-    if args.c1_2:
-        c1_2 = args.c1_2
-    if args.c2_2:
-        c2_2 = args.c2_2
+    if args.R:
+        R = args.R
+    if args.c1:
+        c1 = args.c1
+    if args.c2:
+        c2 = args.c2
     if args.T:
         T = args.T
-    if args.target:
-        target = args.target
     if args.N:
         N = args.N
     if args.H:
@@ -109,5 +88,5 @@ if __name__ == '__main__':
     if args.name:
         name = args.name
     else:
-        name =  'optimized_c1_{:.2f}'.format(c1_1) + '_{:.2f}'.format(c1_2) + '_c2_{:.2f}'.format(c2_1) + '_{:.2f}'.format(c2_2) + '_T_{:.2f}'.format(T) + '.stl'
-    interpolate_stl(target, c1_1, c2_1, c1_2, c2_2, T, H, N, name)
+        name =  'r_{:.2f}'.format(R) + '_c1_{:.2f}'.format(c1) + '_c2_{:.2f}'.format(c2) + '_T_{:.2f}'.format(T) + '.stl'
+    twist_stl(R, c1, c2, T, H, N, name)

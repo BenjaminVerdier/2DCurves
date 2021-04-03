@@ -3,10 +3,10 @@ import numpy as np
 from math import sqrt
 from functools import partial
 
-from mpmath import *
+import mpmath as mp
 
 def fermat_length(a,x):
-    F = ellipf(acos((0.5-x) / (0.5+x)), 0.5)
+    F = mp.ellipf(mp.acos((0.5-x) / (0.5+x)), 0.5)
     return a*(F + sqrt(2*x*(4*x**2+1))) / sqrt(18)
 
 

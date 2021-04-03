@@ -53,7 +53,6 @@ def optimizable_function(target, c1, c2, param):
 def getStlName(r, c1, c2):
     return 'r_' + "{:.2f}".format(r) + '_c1_' + "{:.2f}".format(c1) + '_c2_' + "{:.2f}".format(c2) + '.stl'
 
-
 def main(target, c1, c2, N, H, name, do_sanity_check, BB, W):
     global theta
     theta = np.arange(0, (2 * pi), N)
