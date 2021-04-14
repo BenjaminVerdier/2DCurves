@@ -1,3 +1,5 @@
+#Credit for most of this goes to Evan Bosia (https://github.com/ejbosia) and Richard Wan (https://github.com/Richardlx).
+
 # these are the Classes used from the Shapely library
 # - https://shapely.readthedocs.io/en/stable/manual.html
 from shapely.geometry import Point
