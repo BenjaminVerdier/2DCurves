@@ -121,7 +121,7 @@ def get_stl_name():
     return 'r_' + "{:.2f}".format(radius_slider.val) + '_c1_' + "{:.2f}".format(c1_slider.val) + '_c2_' + "{:.2f}".format(c2_slider.val) + '.stl'
 
 def stl_button_on_clicked(mouse_event):
-    # In order: we get the carthesian coordiantes of the curve, offset it outward then make it into an STL file
+    # In order: we get the cartesian coordiantes of the curve, offset it outward then make it into an STL file
     utils.lineToSTL(utils.offset_curve(np.array(utils.polarToCart(theta, radii)), -float(width_text_box.text)/2), get_stl_name(), float(height_text_box.text))
 stl_button.on_clicked(stl_button_on_clicked)
 

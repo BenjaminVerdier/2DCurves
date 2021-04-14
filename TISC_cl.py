@@ -37,12 +37,12 @@ def interpolate_stl(target, c1_1, c2_1, c1_2, c2_2, twist, z, steps, name):
         tuples[i] = (res.x[0], c1s[i], c2s[i])
         # compute radii for current slice's parameters
         temp_polar = utils.radius_SC(theta, *tuples[i])
-        # Convert polar coordinates to carthesian, adding the twist of the slice
+        # Convert polar coordinates to cartesian, adding the twist of the slice
         temp_cart = utils.polarToCart(theta + twists[i], temp_polar)
         # Convert to 3d and store in our array
         pts_3d[i] =  [ [ax,ay,i*height_step] for (ax,ay) in temp_cart]
 
-    # We need to triangulize the base and top, so first we recompute the carthesian coordinates of those
+    # We need to triangulize the base and top, so first we recompute the cartesian coordinates of those
     pts_base = utils.polarToCart(theta, utils.radius_SC(theta, *tuples[0]))
     pts_top = utils.polarToCart(theta + twist, utils.radius_SC(theta, *tuples[steps-1]))
 
