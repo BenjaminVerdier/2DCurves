@@ -1,45 +1,19 @@
 from numpy import pi, sin, cos
 import numpy as np
 import math
-import linetostl
 from functools import partial
 from scipy.optimize import minimize
-import integral
-import curves_overlap
 import argparse
 import matplotlib.pyplot as plt
 import csv
 import random
+import utils
 
+#Globals
 theta = np.arange(0, (2 * pi), 0.01)
 
-def check_for_neg_rad(radii):
-    if np.amin(radii) < 0.01:
-        return True
-    return False
-
-def check_overlap(pts, W):
-    return curves_overlap.check_for_intersection(np.array(pts), W, False)
-
-def checkBB(radii, BB):
-    if np.amax(radii) > BB:
-        return True
-    return False
-
-def sanity_check(theta, radii, W, BB):
-    problem = False
-    #pts = linetostl.polarToCart(theta, radii)
-    if checkBB(radii, BB):
-        problem = True
-    if not problem and check_for_neg_rad(radii):
-        problem = True
-    #if not problem and check_overlap(pts, W):
-        #problem = True
-    return not problem
-
-def radius_comp(radius = 1, c1 = 0, c2 = 0):
-    return radius * (1 + c1 * cos(4 * theta) + c2 * cos(8 * theta))
-
+# For a fixed radius R, sweeps the c1,c2 space between the given bounds and checks for printability of each triplet.
+# Saves a figure of the c1,c2 space with red dots for unprintable combinations and blue dots for printable ones.
 def scan_for_fixed_radius(radius, min_c1, max_c1, min_c2, max_c2, resolution, W, BB):
     c1s = np.arange(min_c1, max_c1 + resolution, resolution)
     c2s = np.arange(min_c2, max_c2 + resolution, resolution)
@@ -52,8 +26,8 @@ def scan_for_fixed_radius(radius, min_c1, max_c1, min_c2, max_c2, resolution, W,
     for c1 in c1s:
         r = []
         for c2 in c2s:
-            r = radius_comp(radius, c1, c2)
-            if sanity_check(theta, r, W, BB):
+            r = utils.radius_SC(theta, (radius, c1, c2)
+            if utils.sanity_check(theta, r, W, BB, c_overlap=False):
                 valid_c1s.append(c1)
                 valid_c2s.append(c2)
             else:
@@ -76,8 +50,11 @@ for radius in np.arange(1,6,.5):
 """
 
 def optimizable_function(target, c1, c2, param):
-    return abs(target - integral.approximate_integral_length(param[0], c1, c2))
+    return abs(target - utils.approximate_integral_SC_length(param[0], c1, c2))
 
+# For a given target length, scans the c1,c2 space, computing optimal radii and checking for printability.
+# Outputs a similar picture, plus a csv file of all the valid triplets.
+# This takes a while
 def scan_for_optimal_radius_and_printability(target, min_c1, max_c1, min_c2, max_c2, resolution, W, BB):
     c1s = np.arange(min_c1, max_c1 + resolution, resolution)
     c2s = np.arange(min_c2, max_c2 + resolution, resolution)
@@ -95,8 +72,8 @@ def scan_for_optimal_radius_and_printability(target, min_c1, max_c1, min_c2, max
             x0=[38]
             res = minimize(func_to_opt, np.array(x0), method='nelder-mead', options={'xatol': 1e-8, 'disp': False})
             radius = res.x[0]
-            r = radius_comp(radius, c1, c2)
-            if sanity_check(theta, r, W, BB):
+            r = utils.radius_SC(theta, (radius, c1, c2)
+            if utils.sanity_check(theta, r, W, BB, c_overlap=False):
                 valid_c1s.append(c1)
                 valid_c2s.append(c2)
                 corresponding_radii.append(radius)
@@ -115,16 +92,17 @@ def scan_for_optimal_radius_and_printability(target, min_c1, max_c1, min_c2, max
         writer.writerow(['c1','c2','radius'])
         for row in zip(valid_c1s,valid_c2s,corresponding_radii):
             writer.writerow(row)
-
-
+"""
 # Scanning c1-c2 space for optimal radii and checking printability
-#scan_for_optimal_radius_and_printability(240.667, -1, 1, -1, 1, .02, .6, 19)
+scan_for_optimal_radius_and_printability(240.667, -1, 1, -1, 1, .02, .6, 19)
+"""
 
+# Linearly interpolates between the given parameters, computes the length at each step then saves a picture of the variations.
 def interpolation(r_1, c1_1, c2_1, r_2, c1_2, c2_2, steps):
     tuples = np.linspace((r_1, c1_1, c2_1), (r_2, c1_2, c2_2), steps)
     lengths = [0] * steps
     for i in range(steps):
-        lengths[i] = integral.approximate_integral_length(*tuples[i])
+        lengths[i] = utils.approximate_integral_SC_length(*tuples[i])
     ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=3, rowspan=2)
     ax2 = plt.subplot2grid((3, 3), (2, 0))
     ax3 = plt.subplot2grid((3, 3), (2, 1))
@@ -158,4 +136,4 @@ for _ in range(10):
     interpolation(r_1, c1_1, c2_1, r_2, c1_2, c2_2, 100)
 """
 
-interpolation(7.509071223, 0.02, -0.96, 11.8772307, -0.16, -0.58, 100)
+#interpolation(7.509071223, 0.02, -0.96, 11.8772307, -0.16, -0.58, 100)
