@@ -733,6 +733,7 @@ for i in range(target_height + 2):
 image = (image * 255).astype(int)
 
 cv2.imwrite('files/bb.png', image)
+#Get the binary image
 image = cv2.imread('files/bb.png', 0)
 target = 240.667
 

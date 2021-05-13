@@ -3,7 +3,6 @@ import numpy as np
 import mapbox_earcut as earcut
 from stl import mesh
 import argparse
-import integral
 from functools import partial
 from scipy.optimize import minimize
 import utils
@@ -15,8 +14,9 @@ theta = np.arange(0, (2 * pi), 0.01)
 def optimizable_function(target, c1, c2, param):
     return abs(target - utils.approximate_integral_SC_length(param[0], c1, c2))
 
-def interpolate_stl(target, c1_1, c2_1, c1_2, c2_2, twist, z, steps, name):
-    # linear interpolation of c1s, c2s and twist angles which are the parameters of the curve at each slice
+def interpolate_stl(target, target_var, c1_1, c2_1, c1_2, c2_2, twist, z, steps, name):
+    # linear interpolation of targets, c1s, c2s and twist angles which are the parameters of the curve at each slice
+    targets = np.linspace(target - target_var/2, target + target_var/2, steps)
     c1s = np.linspace(c1_1, c1_2, steps)
     c2s = np.linspace(c2_1, c2_2, steps)
     twists = np.linspace(0, T, steps)
@@ -28,7 +28,7 @@ def interpolate_stl(target, c1_1, c2_1, c1_2, c2_2, twist, z, steps, name):
     # For each 'slice'
     for i in range(steps):
         # Partialize the function with the right values for c1 and c2
-        func_to_opt = partial(optimizable_function, target, c1s[i], c2s[i])
+        func_to_opt = partial(optimizable_function, targets[i], c1s[i], c2s[i])
         # Inital value for the radius, works for c1 = c2 = 0
         x0=[38]
         # minimize the length difference
@@ -90,6 +90,7 @@ if __name__ == '__main__':
     c2_2 = 0
     T = 0
     target = 240.667
+    target_var = 0
     N = 100
     H = 1
     name = ''
@@ -99,7 +100,8 @@ if __name__ == '__main__':
     parser.add_argument('--c1_2', type=float, help='Value of c1 of the base, default=c1_1')
     parser.add_argument('--c2_2', type=float, help='Value of c2 of the base, default=c2_1')
     parser.add_argument('--T', type=float, help='Total twist, default=0')
-    parser.add_argument('--target', type=float, help='Length target, default=240.667')
+    parser.add_argument('--target', type=float, help='Length target, in mm, default=240.667')
+    parser.add_argument('--target_var', type=float, help='Variation of target length between top and bottom, in mm, default=0')
     parser.add_argument('--N', type=float, help='Number of interpolation steps, default=100')
     parser.add_argument('--H', type=float, help='Height of the stl, default=1')
     parser.add_argument('--name', help='Name of the stl file, default="optimized__c1_yyy_YYY_c2_zzz_ZZZ_T_ttt.stl"')
@@ -120,6 +122,8 @@ if __name__ == '__main__':
         T = args.T
     if args.target:
         target = args.target
+    if args.target_var:
+        target_var = args.target_var
     if args.N:
         N = args.N
     if args.H:
@@ -128,4 +132,4 @@ if __name__ == '__main__':
         name = args.name
     else:
         name =  'optimized_c1_{:.2f}'.format(c1_1) + '_{:.2f}'.format(c1_2) + '_c2_{:.2f}'.format(c2_1) + '_{:.2f}'.format(c2_2) + '_T_{:.2f}'.format(T) + '.stl'
-    interpolate_stl(target, c1_1, c2_1, c1_2, c2_2, T, H, N, name)
+    interpolate_stl(target, target_var, c1_1, c2_1, c1_2, c2_2, T, H, N, name)
